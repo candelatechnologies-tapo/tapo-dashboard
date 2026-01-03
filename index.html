@@ -15,12 +15,12 @@
   --card2:#111827;
   --accent:#38bdf8;
   --warn:#facc15;
-  --text:#ffffff;
+  --text:#fff;
   --muted:rgba(255,255,255,.65);
 }
 body{margin:0;font-family:Inter,sans-serif;background:var(--bg);color:var(--text);}
 header{padding:18px 26px;background:linear-gradient(135deg,#0284c7,#0ea5e9);}
-header h1{margin:0;font-size:20px;font-weight:800;}
+header h1{margin:0;font-size:20px;font-weight:800}
 .container{max-width:1200px;margin:auto;padding:20px}
 
 /* NAV */
@@ -30,17 +30,11 @@ header h1{margin:0;font-size:20px;font-weight:800;}
 
 /* DAY STRIP */
 .days{display:flex;gap:14px;margin-bottom:18px;overflow-x:auto}
-.day{
-  background:var(--card);
-  padding:14px;
-  border-radius:16px;
-  min-width:130px;
-  cursor:pointer;
-}
+.day{background:var(--card);padding:14px;border-radius:16px;min-width:120px;cursor:pointer}
 .day.active{background:#334155}
 .day .date{font-size:12px;opacity:.8}
-.day .big{font-size:22px;font-weight:800;margin-top:4px}
-.pill{margin-top:6px;font-size:12px;opacity:.85}
+.day .big{font-size:22px;font-weight:800}
+.pill{margin-top:6px;font-size:12px;opacity:.8}
 
 /* SECTIONS */
 .section{display:none}
@@ -62,25 +56,15 @@ header h1{margin:0;font-size:20px;font-weight:800;}
 
 /* HOURLY STRIP */
 .hour-strip{
-  display:flex;
-  gap:12px;
-  overflow-x:auto;
-  padding:12px;
-  background:var(--card2);
-  border-radius:18px;
-  margin-bottom:16px;
+  display:flex;gap:12px;overflow-x:auto;
+  padding:12px;background:var(--card2);
+  border-radius:18px;margin-bottom:16px;
 }
-.hour{
-  min-width:110px;
-  background:rgba(255,255,255,.06);
-  border-radius:16px;
-  padding:10px;
-  text-align:center;
-}
-.hour img{width:32px}
+.hour{min-width:105px;background:rgba(255,255,255,.06);border-radius:16px;padding:10px;text-align:center}
+.hour img{width:30px}
 .hour .t{font-size:12px;opacity:.8}
 .hour .temp{font-size:18px;font-weight:800}
-.hour .conf{font-size:11px;opacity:.7}
+.hour .hum{font-size:12px;opacity:.7}
 
 /* CARDS */
 .card{background:var(--card);border-radius:18px;padding:18px;margin-bottom:16px}
@@ -111,12 +95,12 @@ canvas{width:100%!important;height:100%!important}
   <div class="hour-strip" id="hourStrip"></div>
 
   <div class="card">
-    <h3>🌡️ Temperature (°C)</h3>
+    <h3>🌡️ Hourly Temperature (°C)</h3>
     <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
   </div>
 
   <div class="card">
-    <h3>💧 Humidity (%)</h3>
+    <h3>💧 Hourly Humidity (%)</h3>
     <div class="chart-wrap"><canvas id="humChart"></canvas></div>
   </div>
 </div>
@@ -144,130 +128,124 @@ canvas{width:100%!important;height:100%!important}
 </div>
 
 <script>
-/* ================= LOAD CSV ================= */
-let rawRows=[], hourlyData={}, dates=[], currentDate="";
+/* ===================== GLOBAL ===================== */
+let weatherData={}, currentDate=null;
 
+/* ===================== SMART ICON ===================== */
+function smartIcon(t,h,hr){
+  const night=(hr>=18||hr<6);
+  if(night && h>=85) return "https://img.icons8.com/color/96/fog-night.png";
+  if(h>=80) return "https://img.icons8.com/color/96/cloud.png";
+  if(!night && t>=28 && h<65) return "https://img.icons8.com/color/96/sun.png";
+  return night
+    ? "https://img.icons8.com/color/96/moon.png"
+    : "https://img.icons8.com/color/96/partly-cloudy-day.png";
+}
+
+/* ===================== LOAD CSV ===================== */
 async function loadCSV(){
   const res = await fetch("data/tapo_data.csv",{cache:"no-store"});
   const text = await res.text();
   const lines = text.trim().split("\n").slice(1);
 
-  rawRows = lines.map(l=>{
+  lines.forEach(l=>{
     const [ts,t,h]=l.split(",");
     const d=new Date(ts.replace(" ","T"));
-    return {
-      date:d.toISOString().slice(0,10),
-      hour:d.getHours(),
-      temp:+t,
-      hum:+h
-    };
+    const date=d.toISOString().slice(0,10);
+    const hour=d.getHours();
+
+    weatherData[date] ??= {hours:{},temp:{},hum:{}};
+    weatherData[date].temp[hour] ??= [];
+    weatherData[date].hum[hour] ??= [];
+    weatherData[date].temp[hour].push(+t);
+    weatherData[date].hum[hour].push(+h);
   });
 
-  aggregate();
+  Object.keys(weatherData).forEach(d=>{
+    const o=weatherData[d];
+    o.hours=Object.keys(o.temp).sort((a,b)=>a-b);
+    o.temp=o.hours.map(h=>avg(o.temp[h]));
+    o.hum=o.hours.map(h=>avg(o.hum[h]));
+  });
+
+  currentDate=Object.keys(weatherData).sort().pop();
   buildDays();
-  currentDate = dates[dates.length-1];
   updateAll();
 }
 
-/* ================= AGGREGATE PER MINUTE → HOURLY ================= */
-function aggregate(){
-  hourlyData={};
-  rawRows.forEach(r=>{
-    hourlyData[r.date] ??= {};
-    hourlyData[r.date][r.hour] ??= {t:[],h:[]};
-    hourlyData[r.date][r.hour].t.push(r.temp);
-    hourlyData[r.date][r.hour].h.push(r.hum);
-  });
-  dates = Object.keys(hourlyData).sort();
-}
-
-/* ================= ESTIMATED CONDITIONS ================= */
-function estimate(t,h,hr){
-  const night=(hr>=18||hr<6);
-  if(night && h>=85) return ["Humid night","https://img.icons8.com/color/96/fog-night.png","Medium"];
-  if(h>=80) return ["Very humid","https://img.icons8.com/color/96/cloud.png","Medium"];
-  if(h>=65) return ["Possible cloudiness","https://img.icons8.com/color/96/partly-cloudy-day.png","Low"];
-  if(!night && t>=28 && h<65) return ["Clear & warm","https://img.icons8.com/color/96/sun.png","Medium"];
-  return ["Normal","https://img.icons8.com/color/96/moon.png","Low"];
-}
-
-/* ================= CHARTS ================= */
-const tempChart=new Chart(document.getElementById("tempChart"),{
-  type:"line",
-  data:{labels:[],datasets:[{data:[],borderColor:"#38bdf8",backgroundColor:"rgba(56,189,248,.3)",fill:true,tension:.4}]},
-  options:{plugins:{legend:{display:false}}}
-});
-const humChart=new Chart(document.getElementById("humChart"),{
-  type:"bar",
-  data:{labels:[],datasets:[{data:[],backgroundColor:"rgba(250,204,21,.6)",borderRadius:10}]},
-  options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:100}}}
-});
-
-/* ================= UI ================= */
+/* ===================== UI ===================== */
 function buildDays(){
   const days=document.getElementById("days");
   days.innerHTML="";
-  dates.forEach(d=>{
-    const hrs=Object.values(hourlyData[d]);
-    const avgT=avg(hrs.flatMap(x=>x.t));
-    const avgH=avg(hrs.flatMap(x=>x.h));
+  Object.keys(weatherData).sort().forEach(d=>{
+    const o=weatherData[d];
     const el=document.createElement("div");
     el.className="day"+(d===currentDate?" active":"");
     el.innerHTML=`
       <div class="date">${d}</div>
-      <div class="big">${avgT.toFixed(0)}°</div>
-      <div class="pill">💧 ${avgH.toFixed(0)}%</div>`;
+      <div class="big">${Math.max(...o.temp).toFixed(0)}°</div>
+      <div class="pill">💧 ${avg(o.hum).toFixed(0)}%</div>`;
     el.onclick=()=>{currentDate=d;updateAll();}
     days.appendChild(el);
   });
 }
 
 function updateAll(){
-  buildDays();
-  const day=hourlyData[currentDate];
-  const hours=Object.keys(day).sort((a,b)=>a-b);
+  document.querySelectorAll(".day").forEach(d=>d.classList.toggle("active",d.innerText.includes(currentDate)));
+  const d=weatherData[currentDate];
 
-  const tArr=[],hArr=[];
+  /* Hourly cards */
   const strip=document.getElementById("hourStrip");
   strip.innerHTML="";
-
-  hours.forEach(h=>{
-    const t=avg(day[h].t), hum=avg(day[h].h);
-    const [txt,icon,conf]=estimate(t,hum,+h);
+  d.hours.forEach((h,i)=>{
     strip.innerHTML+=`
       <div class="hour">
         <div class="t">${h}:00</div>
-        <img src="${icon}">
-        <div class="temp">${t.toFixed(1)}°</div>
-        <div class="conf">${txt}<br>${conf}</div>
+        <img src="${smartIcon(d.temp[i],d.hum[i],+h)}">
+        <div class="temp">${d.temp[i].toFixed(1)}°</div>
+        <div class="hum">${d.hum[i].toFixed(0)}%</div>
       </div>`;
-    tArr.push(t); hArr.push(hum);
   });
 
-  tempChart.data.labels=hours.map(h=>h+":00");
-  tempChart.data.datasets[0].data=tArr;
+  /* Charts */
+  tempChart.data.labels=d.hours.map(h=>h+":00");
+  tempChart.data.datasets[0].data=d.temp;
   tempChart.update();
 
-  humChart.data.labels=hours.map(h=>h+":00");
-  humChart.data.datasets[0].data=hArr;
+  humChart.data.labels=d.hours.map(h=>h+":00");
+  humChart.data.datasets[0].data=d.hum;
   humChart.update();
 
-  const mid=Math.floor(hours.length/2);
-  const [txt,icon,conf]=estimate(tArr[mid],hArr[mid],+hours[mid]);
+  /* Day hero */
   heroDay.innerText=currentDate;
-  heroTemp.innerText=avg(tArr).toFixed(1)+" °C";
-  heroHum.innerText=avg(hArr).toFixed(1)+" %";
-  heroCond.innerText=txt+" ("+conf+")";
-  heroIcon.src=icon;
+  heroTemp.innerText=avg(d.temp).toFixed(1)+" °C";
+  heroHum.innerText=avg(d.hum).toFixed(1)+" %";
+  heroCond.innerText="Estimated conditions";
+  heroIcon.src=smartIcon(avg(d.temp),avg(d.hum),12);
 
-  document.getElementById("monthlyList").innerHTML=
-    dates.map(d=>{
-      const h=Object.values(hourlyData[d]);
-      return `<div>${d} — 🌡️ ${avg(h.flatMap(x=>x.t)).toFixed(1)}° • 💧 ${avg(h.flatMap(x=>x.h)).toFixed(0)}%</div>`;
-    }).join("<hr>");
+  /* Monthly */
+  monthlyList.innerHTML=Object.keys(weatherData).map(x=>{
+    const o=weatherData[x];
+    return `<div>${x} — 🌡️ ${avg(o.temp).toFixed(1)}° • 💧 ${avg(o.hum).toFixed(0)}%</div>`;
+  }).join("<hr>");
 }
 
-/* ================= UTILS ================= */
+/* ===================== CHARTS ===================== */
+const tempChart=new Chart(tempChartCanvas={
+  getContext:()=>document.getElementById("tempChart").getContext("2d")
+}.getContext(),{
+  type:"line",
+  data:{labels:[],datasets:[{data:[],borderColor:"#38bdf8",fill:true,backgroundColor:"rgba(56,189,248,.3)",tension:.4}]},
+  options:{plugins:{legend:{display:false}}}
+});
+
+const humChart=new Chart(document.getElementById("humChart"),{
+  type:"bar",
+  data:{labels:[],datasets:[{data:[],backgroundColor:"rgba(250,204,21,.6)",borderRadius:10}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:100}}}
+});
+
+/* ===================== UTILS ===================== */
 function avg(a){return a.reduce((x,y)=>x+y,0)/a.length}
 function switchTab(t){
   document.querySelectorAll(".tabs span").forEach(x=>x.classList.remove("active"));
