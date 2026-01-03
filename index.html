@@ -1,75 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>Smart Temperature & Humidity Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-:root{
-  --bg:#0b1220;
-  --card:#1e293b;
-  --card2:#111827;
-  --accent:#38bdf8;
-  --warn:#facc15;
-  --text:#fff;
-  --muted:rgba(255,255,255,.65);
-}
-body{margin:0;font-family:Inter,sans-serif;background:var(--bg);color:var(--text);}
-header{padding:18px 26px;background:linear-gradient(135deg,#0284c7,#0ea5e9);}
-header h1{margin:0;font-size:20px;font-weight:800}
-.container{max-width:1200px;margin:auto;padding:20px}
+  :root{
+    --bg:#0b1220;
+    --card:#1e293b;
+    --card2:#111827;
+    --accent:#38bdf8;
+    --warn:#facc15;
+    --danger:#fb7185;
+    --text:#ffffff;
+    --muted:rgba(255,255,255,.65);
+  }
 
-/* NAV */
-.nav{display:flex;justify-content:space-between;align-items:center;margin:18px 0}
-.tabs span{margin-right:22px;font-weight:700;cursor:pointer;opacity:.6}
-.tabs .active{opacity:1;border-bottom:3px solid var(--accent);padding-bottom:6px}
+  body{margin:0;font-family:Inter,sans-serif;background:var(--bg);color:var(--text);}
+  header{padding:18px 26px;background:linear-gradient(135deg,#0284c7,#0ea5e9);}
+  header h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.2px;}
 
-/* DAY STRIP */
-.days{display:flex;gap:14px;margin-bottom:18px;overflow-x:auto}
-.day{background:var(--card);padding:14px;border-radius:16px;min-width:120px;cursor:pointer}
-.day.active{background:#334155}
-.day .date{font-size:12px;opacity:.8}
-.day .big{font-size:22px;font-weight:800}
-.pill{margin-top:6px;font-size:12px;opacity:.8}
+  .container{max-width:1200px;margin:auto;padding:20px}
 
-/* SECTIONS */
-.section{display:none}
-.section.active{display:block}
+  .statusbar{
+    display:none;
+    margin:14px 0 0;
+    padding:12px 14px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.10);
+    background:rgba(255,255,255,.06);
+    color:rgba(255,255,255,.92);
+  }
+  .statusbar.error{display:block;border-color:rgba(251,113,133,.35); background:rgba(251,113,133,.10)}
+  .statusbar.ok{display:block;border-color:rgba(56,189,248,.35); background:rgba(56,189,248,.10)}
+  .statusbar .small{display:block;margin-top:6px;color:rgba(255,255,255,.75);font-size:12px}
 
-/* HERO */
-.hero{
-  background:linear-gradient(180deg,#0284c7,#0369a1);
-  border-radius:26px;
-  padding:26px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:16px;
-}
-.hero h2{margin:0;font-size:34px}
-.hero .meta{margin-top:12px;line-height:1.8}
-.hero img{width:140px}
+  /* NAV */
+  .nav{display:flex;justify-content:space-between;align-items:center;margin:18px 0}
+  .tabs span{margin-right:22px;font-weight:700;cursor:pointer;opacity:.6}
+  .tabs .active{opacity:1;border-bottom:3px solid var(--accent);padding-bottom:6px}
 
-/* HOURLY STRIP */
-.hour-strip{
-  display:flex;gap:12px;overflow-x:auto;
-  padding:12px;background:var(--card2);
-  border-radius:18px;margin-bottom:16px;
-}
-.hour{min-width:105px;background:rgba(255,255,255,.06);border-radius:16px;padding:10px;text-align:center}
-.hour img{width:30px}
-.hour .t{font-size:12px;opacity:.8}
-.hour .temp{font-size:18px;font-weight:800}
-.hour .hum{font-size:12px;opacity:.7}
+  .rightbox{display:flex;align-items:center;gap:10px;}
+  .pill{
+    padding:8px 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.08);
+    font-size:12px;
+    color:rgba(255,255,255,.82);
+  }
+  .calendar{font-size:20px;position:relative;cursor:pointer;user-select:none}
+  .calendar input{position:absolute;inset:0;opacity:0;cursor:pointer}
 
-/* CARDS */
-.card{background:var(--card);border-radius:18px;padding:18px;margin-bottom:16px}
-.chart-wrap{height:260px}
-canvas{width:100%!important;height:100%!important}
+  /* DAY STRIP */
+  .days{display:flex;gap:14px;margin-bottom:18px;overflow-x:auto;padding-bottom:6px}
+  .day{
+    background:var(--card);
+    padding:14px;
+    border-radius:16px;
+    cursor:pointer;
+    min-width:140px;
+    box-shadow:0 10px 25px rgba(0,0,0,.25);
+  }
+  .day.active{background:#334155}
+  .day .date{font-size:12px;opacity:.85;margin-bottom:8px}
+  .day .big{font-size:22px;font-weight:800}
+  .day .mini{margin-top:8px;font-size:12px;color:rgba(255,255,255,.80)}
+
+  /* SECTIONS */
+  .section{display:none}
+  .section.active{display:block}
+
+  /* HERO (DAY TAB) */
+  .hero{
+    background:linear-gradient(180deg,#0284c7,#0369a1);
+    border-radius:26px;
+    padding:26px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);
+    margin-bottom:16px;
+  }
+  .hero h2{margin:0;font-size:34px;letter-spacing:.3px}
+  .hero .meta{margin-top:12px;line-height:1.9;color:rgba(255,255,255,.92);font-weight:600}
+  .hero img{width:150px}
+
+  .info{
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.06);
+    padding:14px 16px;
+    border-radius:16px;
+    margin-bottom:18px;
+    color:rgba(255,255,255,.92);
+  }
+
+  /* HOURLY STRIP */
+  .hour-strip{
+    display:flex;
+    gap:12px;
+    overflow-x:auto;
+    padding:12px;
+    background:var(--card2);
+    border-radius:18px;
+    box-shadow:0 12px 28px rgba(0,0,0,.35);
+    margin-bottom:16px;
+  }
+  .hour{
+    min-width:105px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:16px;
+    padding:10px;
+    text-align:center;
+  }
+  .hour .t{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
+  .hour img{width:30px;height:30px}
+  .hour .temp{font-size:18px;font-weight:900;margin-top:6px}
+  .hour .hum{font-size:12px;color:rgba(255,255,255,.82);font-weight:700;margin-top:4px}
+  .hour .note{font-size:11px;color:rgba(255,255,255,.65);margin-top:6px}
+
+  /* CARDS */
+  .card{
+    background:var(--card);
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 12px 28px rgba(0,0,0,.35);
+    margin-bottom:16px;
+    border:1px solid rgba(255,255,255,.06);
+  }
+  .card h3{margin:0 0 10px;font-size:14px;letter-spacing:.2px;color:rgba(255,255,255,.92)}
+  .chart-wrap{height:280px;}
+  canvas{width:100% !important;height:100% !important;}
+
+  /* Monthly list */
+  .monthly-list{display:flex;flex-direction:column;gap:10px}
+  .row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.06);
+    padding:12px 14px;border-radius:14px;
+  }
+  .row .left{display:flex;align-items:center;gap:10px;font-weight:800}
+  .row img{width:28px}
+  .row .range{color:rgba(255,255,255,.85);font-weight:800; text-align:right}
 </style>
 </head>
 
@@ -80,182 +158,511 @@ canvas{width:100%!important;height:100%!important}
 
 <div class="container">
 
-<div class="nav">
-  <div class="tabs">
-    <span class="active" onclick="switchTab('hourly')">Hourly</span>
-    <span onclick="switchTab('day')">Day</span>
-    <span onclick="switchTab('monthly')">Monthly</span>
-  </div>
-</div>
+  <div id="status" class="statusbar"></div>
 
-<div class="days" id="days"></div>
+  <!-- NAV -->
+  <div class="nav">
+    <div class="tabs">
+      <span class="active" onclick="switchTab('hourly')">Hourly</span>
+      <span onclick="switchTab('day')">Day</span>
+      <span onclick="switchTab('monthly')">Monthly</span>
+    </div>
 
-<!-- HOURLY -->
-<div id="hourly" class="section active">
-  <div class="hour-strip" id="hourStrip"></div>
-
-  <div class="card">
-    <h3>🌡️ Hourly Temperature (°C)</h3>
-    <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
-  </div>
-
-  <div class="card">
-    <h3>💧 Hourly Humidity (%)</h3>
-    <div class="chart-wrap"><canvas id="humChart"></canvas></div>
-  </div>
-</div>
-
-<!-- DAY -->
-<div id="day" class="section">
-  <div class="hero">
-    <div>
-      <h2 id="heroDay"></h2>
-      <div class="meta">
-        🌡️ <span id="heroTemp"></span><br>
-        💧 <span id="heroHum"></span><br>
-        🧭 <span id="heroCond"></span>
+    <div class="rightbox">
+      <div class="pill" id="lastUpdated">Last update: —</div>
+      <div class="calendar" title="Pick a date from available CSV days">
+        📅
+        <input type="date" id="datePicker" onchange="loadByDate(this.value)" />
       </div>
     </div>
-    <img id="heroIcon">
   </div>
-</div>
 
-<!-- MONTHLY -->
-<div id="monthly" class="section">
-  <div class="card" id="monthlyList"></div>
-</div>
+  <!-- DAY STRIP -->
+  <div class="days" id="days"></div>
+
+  <!-- HOURLY -->
+  <div id="hourly" class="section active">
+    <div class="hour-strip" id="hourStrip"></div>
+
+    <div class="card">
+      <h3>🌡️ Hourly Temperature (°C)</h3>
+      <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h3>💧 Hourly Humidity (%)</h3>
+      <div class="chart-wrap"><canvas id="humChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- DAY -->
+  <div id="day" class="section">
+    <div class="hero">
+      <div>
+        <h2 id="heroDay">—</h2>
+        <div class="meta">
+          🌡️ <span id="heroTemp">—</span><br />
+          💧 <span id="heroHum">—</span><br />
+          🧭 <span id="heroCond">—</span>
+        </div>
+      </div>
+      <img id="heroIcon" alt="Weather icon" />
+    </div>
+
+    <div class="info" id="forecastText">—</div>
+  </div>
+
+  <!-- MONTHLY -->
+  <div id="monthly" class="section">
+    <div class="card">
+      <h3>📅 All days available in CSV</h3>
+      <div class="monthly-list" id="monthlyList"></div>
+    </div>
+  </div>
 
 </div>
 
 <script>
-/* ===================== GLOBAL ===================== */
-let weatherData={}, currentDate=null;
+/* =========================================================
+   CONFIG: CSV fallbacks + cache busting
+   ========================================================= */
+const CSV_CANDIDATES = [
+  "data/tapo_data.csv",
+  "data/data.csv"
+];
 
-/* ===================== SMART ICON ===================== */
-function smartIcon(t,h,hr){
-  const night=(hr>=18||hr<6);
-  if(night && h>=85) return "https://img.icons8.com/color/96/fog-night.png";
-  if(h>=80) return "https://img.icons8.com/color/96/cloud.png";
-  if(!night && t>=28 && h<65) return "https://img.icons8.com/color/96/sun.png";
-  return night
-    ? "https://img.icons8.com/color/96/moon.png"
-    : "https://img.icons8.com/color/96/partly-cloudy-day.png";
+/* =========================================================
+   STATE
+   ========================================================= */
+let weatherData = {};     // { "YYYY-MM-DD": { label, hours[], temp[], hum[] } }
+let currentDate = null;
+let lastTimestamp = null;
+
+const statusEl = document.getElementById("status");
+const lastUpdatedEl = document.getElementById("lastUpdated");
+const datePickerEl = document.getElementById("datePicker");
+
+/* =========================================================
+   UI Helpers
+   ========================================================= */
+function setStatus(type, msg, small=""){
+  statusEl.className = "statusbar " + (type || "");
+  statusEl.innerHTML = `<b>${msg}</b>${small ? `<span class="small">${small}</span>` : ""}`;
+}
+function clearStatus(){
+  statusEl.className = "statusbar";
+  statusEl.innerHTML = "";
 }
 
-/* ===================== LOAD CSV ===================== */
-async function loadCSV(){
-  const res = await fetch("data/tapo_data.csv",{cache:"no-store"});
-  const text = await res.text();
-  const lines = text.trim().split("\n").slice(1);
-
-  lines.forEach(l=>{
-    const [ts,t,h]=l.split(",");
-    const d=new Date(ts.replace(" ","T"));
-    const date=d.toISOString().slice(0,10);
-    const hour=d.getHours();
-
-    weatherData[date] ??= {hours:{},temp:{},hum:{}};
-    weatherData[date].temp[hour] ??= [];
-    weatherData[date].hum[hour] ??= [];
-    weatherData[date].temp[hour].push(+t);
-    weatherData[date].hum[hour].push(+h);
-  });
-
-  Object.keys(weatherData).forEach(d=>{
-    const o=weatherData[d];
-    o.hours=Object.keys(o.temp).sort((a,b)=>a-b);
-    o.temp=o.hours.map(h=>avg(o.temp[h]));
-    o.hum=o.hours.map(h=>avg(o.hum[h]));
-  });
-
-  currentDate=Object.keys(weatherData).sort().pop();
-  buildDays();
-  updateAll();
+function friendlyLabel(dateStr){
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString(undefined, { weekday:"long", day:"2-digit", month:"short" });
 }
 
-/* ===================== UI ===================== */
-function buildDays(){
-  const days=document.getElementById("days");
-  days.innerHTML="";
-  Object.keys(weatherData).sort().forEach(d=>{
-    const o=weatherData[d];
-    const el=document.createElement("div");
-    el.className="day"+(d===currentDate?" active":"");
-    el.innerHTML=`
-      <div class="date">${d}</div>
-      <div class="big">${Math.max(...o.temp).toFixed(0)}°</div>
-      <div class="pill">💧 ${avg(o.hum).toFixed(0)}%</div>`;
-    el.onclick=()=>{currentDate=d;updateAll();}
-    days.appendChild(el);
+/* =========================================================
+   Smart Icons (honest estimate from temp+humidity+hour)
+   ========================================================= */
+function smartIcon(tempC, humidity, hour24){
+  const isNight = (hour24 >= 18 || hour24 < 6);
+  const veryHumid = humidity >= 85;
+  const humid = humidity >= 75;
+
+  if(isNight){
+    if(veryHumid) return "https://img.icons8.com/color/96/fog-night.png";
+    if(humid)     return "https://img.icons8.com/color/96/cloud.png";
+    return "https://img.icons8.com/color/96/moon.png";
+  }else{
+    if(tempC >= 28 && humidity < 70) return "https://img.icons8.com/color/96/sun.png";
+    if(humid)                        return "https://img.icons8.com/color/96/cloud.png";
+    return "https://img.icons8.com/color/96/partly-cloudy-day.png";
+  }
+}
+
+function smartText(tempC, humidity, hour24){
+  const isNight = (hour24 >= 18 || hour24 < 6);
+  if(isNight && humidity >= 85) return "Humid night";
+  if(humidity >= 80) return "Very humid";
+  if(humidity >= 70) return "Possible clouds";
+  if(!isNight && tempC >= 28 && humidity < 70) return "Clear & warm";
+  return isNight ? "Night" : "Normal";
+}
+
+/* =========================================================
+   CSV Loading: tries both filenames and shows clear errors
+   ========================================================= */
+async function fetchTextWithFallback(){
+  let lastErr = null;
+  for(const path of CSV_CANDIDATES){
+    try{
+      const url = path + "?ts=" + Date.now(); // cache-bust
+      const res = await fetch(url, { cache:"no-store" });
+      if(!res.ok) throw new Error(`HTTP ${res.status} for ${path}`);
+      const text = await res.text();
+      // Basic validation: must contain at least one newline
+      if(!text || text.trim().length < 5) throw new Error(`Empty file at ${path}`);
+      return { text, usedPath: path };
+    }catch(e){
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("Failed to load CSV");
+}
+
+/* =========================================================
+   Robust CSV Parsing
+   Supports headers like:
+   - Timestamp,Temperature_C,Humidity_percent
+   - timestamp,temperature,humidity
+   - Time,Temp,Hum (best effort)
+   ========================================================= */
+function normalizeHeader(h){
+  return String(h || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g,"")
+    .replace(/[%()]/g,"")
+    .replace(/_/g,"");
+}
+
+function parseCSVToRows(csvText){
+  const lines = csvText.replace(/\r/g,"").split("\n").filter(l => l.trim().length);
+  if(lines.length < 2) return [];
+
+  const header = lines[0].split(",").map(normalizeHeader);
+
+  // Find likely columns
+  const tsIdx = header.findIndex(h => ["timestamp","time","datetime","date","ts"].includes(h));
+  const tIdx  = header.findIndex(h => ["temperaturec","temperature","tempc","temp","t"].includes(h));
+  const hIdx  = header.findIndex(h => ["humiditypercent","humidity","hum","rh","h"].includes(h));
+
+  // If header not detected, assume first 3 columns (ts,t,h)
+  const tsCol = tsIdx !== -1 ? tsIdx : 0;
+  const tCol  = tIdx  !== -1 ? tIdx  : 1;
+  const hCol  = hIdx  !== -1 ? hIdx  : 2;
+
+  const rows = [];
+
+  for(let i=1;i<lines.length;i++){
+    const cols = lines[i].split(",");
+    const ts = (cols[tsCol] || "").trim();
+    const t  = parseFloat(cols[tCol]);
+    const hum = parseFloat(cols[hCol]);
+
+    if(!ts || Number.isNaN(t) || Number.isNaN(hum)) continue;
+
+    // Accept formats like "YYYY-MM-DD HH:MM:SS"
+    const d = new Date(ts.includes("T") ? ts : ts.replace(" ", "T"));
+    if(Number.isNaN(d.getTime())) continue;
+
+    rows.push({ d, temp:t, hum:hum, rawTs:ts });
+  }
+
+  return rows;
+}
+
+/* =========================================================
+   Aggregate per-minute rows -> per-hour averages -> weatherData
+   ========================================================= */
+function buildWeatherData(rows){
+  const byDateHour = {}; // {date:{hour:{t:[],h:[]}}}
+
+  for(const r of rows){
+    const iso = r.d.toISOString(); // in UTC
+    const date = iso.slice(0,10);
+    const hour = r.d.getHours();   // local hour based on browser timezone
+
+    byDateHour[date] ??= {};
+    byDateHour[date][hour] ??= { t:[], h:[] };
+    byDateHour[date][hour].t.push(r.temp);
+    byDateHour[date][hour].h.push(r.hum);
+  }
+
+  const out = {};
+  const dates = Object.keys(byDateHour).sort();
+
+  for(const date of dates){
+    const hours = Object.keys(byDateHour[date]).map(x=>parseInt(x,10)).sort((a,b)=>a-b);
+    const temps = hours.map(h => avg(byDateHour[date][h].t));
+    const hums  = hours.map(h => avg(byDateHour[date][h].h));
+
+    out[date] = {
+      label: `${friendlyLabel(date)} • ${date}`,
+      hours: hours.map(h => String(h).padStart(2,"0")+":00"),
+      hour24: hours,     // keep numeric hour for icons/text
+      temp: temps,
+      hum: hums
+    };
+  }
+  return out;
+}
+
+/* =========================================================
+   Charts
+   ========================================================= */
+const tempCtx = document.getElementById("tempChart").getContext("2d");
+const humCtx  = document.getElementById("humChart").getContext("2d");
+
+function makeGradient(ctx, height, c1, c2){
+  const g = ctx.createLinearGradient(0,0,0,height);
+  g.addColorStop(0,c1);
+  g.addColorStop(1,c2);
+  return g;
+}
+const tempGradient = makeGradient(tempCtx, 280, "rgba(56,189,248,.55)", "rgba(56,189,248,0)");
+const humGradient  = makeGradient(humCtx, 280, "rgba(250,204,21,.55)", "rgba(250,204,21,0)");
+
+const tempChart = new Chart(tempCtx, {
+  type: "line",
+  data: { labels: [], datasets: [{
+    data: [],
+    borderColor: "#38bdf8",
+    backgroundColor: tempGradient,
+    fill: true,
+    tension: 0.4,
+    pointRadius: 3,
+    pointHoverRadius: 6
+  }]},
+  options: {
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{ legend:{display:false} },
+    scales:{
+      x:{ticks:{color:"rgba(255,255,255,.75)"},grid:{color:"rgba(255,255,255,.06)"}},
+      y:{ticks:{color:"rgba(255,255,255,.75)"},grid:{color:"rgba(255,255,255,.06)"}}
+    }
+  }
+});
+
+const humChart = new Chart(humCtx, {
+  type: "bar",
+  data: { labels: [], datasets: [{
+    data: [],
+    backgroundColor: humGradient,
+    borderColor: "#facc15",
+    borderWidth: 1,
+    borderRadius: 12,
+    barThickness: 18
+  }]},
+  options: {
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{ legend:{display:false} },
+    scales:{
+      x:{ticks:{color:"rgba(255,255,255,.75)"},grid:{color:"rgba(255,255,255,.06)"}},
+      y:{
+        min:0, max:100,
+        ticks:{color:"rgba(255,255,255,.75)"},
+        grid:{color:"rgba(255,255,255,.06)"}
+      }
+    }
+  }
+});
+
+/* =========================================================
+   Tabs + Date picker
+   ========================================================= */
+function switchTab(tab){
+  document.querySelectorAll(".tabs span").forEach(t=>t.classList.remove("active"));
+  document.querySelector(`.tabs span[onclick*="${tab}"]`).classList.add("active");
+
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(tab).classList.add("active");
+}
+
+function loadByDate(dateStr){
+  if(!dateStr) return;
+  // normalize to YYYY-MM-DD
+  const normalized = new Date(dateStr + "T00:00:00").toISOString().slice(0,10);
+  if(weatherData[normalized]){
+    currentDate = normalized;
+    switchTab("hourly");
+    updateAll();
+  }else{
+    alert("No data for selected date in CSV.");
+  }
+}
+
+/* =========================================================
+   Build Day strip + Update UI
+   ========================================================= */
+const daysDiv = document.getElementById("days");
+
+function rebuildDayStrip(){
+  daysDiv.innerHTML = "";
+  const keys = Object.keys(weatherData).sort();
+  keys.forEach(date => {
+    const d = weatherData[date];
+    const maxT = Math.max(...d.temp);
+    const minT = Math.min(...d.temp);
+    const avgH = avg(d.hum);
+
+    const card = document.createElement("div");
+    card.className = "day" + (date === currentDate ? " active" : "");
+    card.dataset.date = date;
+
+    card.innerHTML = `
+      <div class="date">📅 ${d.label}</div>
+      <div class="big">🌡️ ${maxT.toFixed(0)}°</div>
+      <div class="mini">Min ${minT.toFixed(0)}° • 💧 ${avgH.toFixed(0)}%</div>
+    `;
+    card.onclick = () => { currentDate = date; updateAll(); };
+    daysDiv.appendChild(card);
   });
+
+  // date picker limits & available dates
+  if(keys.length){
+    datePickerEl.min = keys[0];
+    datePickerEl.max = keys[keys.length-1];
+    // Keep picker on current date
+    datePickerEl.value = currentDate || keys[keys.length-1];
+  }
+}
+
+function pickHeroIndex(d){
+  // prefer 12:00 if present
+  const idxNoon = d.hours.findIndex(x => x.startsWith("12:"));
+  return idxNoon !== -1 ? idxNoon : Math.floor(d.hours.length/2);
 }
 
 function updateAll(){
-  document.querySelectorAll(".day").forEach(d=>d.classList.toggle("active",d.innerText.includes(currentDate)));
-  const d=weatherData[currentDate];
-
-  /* Hourly cards */
-  const strip=document.getElementById("hourStrip");
-  strip.innerHTML="";
-  d.hours.forEach((h,i)=>{
-    strip.innerHTML+=`
-      <div class="hour">
-        <div class="t">${h}:00</div>
-        <img src="${smartIcon(d.temp[i],d.hum[i],+h)}">
-        <div class="temp">${d.temp[i].toFixed(1)}°</div>
-        <div class="hum">${d.hum[i].toFixed(0)}%</div>
-      </div>`;
+  // highlight selected day
+  document.querySelectorAll(".day").forEach(el=>{
+    el.classList.toggle("active", el.dataset.date === currentDate);
   });
 
-  /* Charts */
-  tempChart.data.labels=d.hours.map(h=>h+":00");
-  tempChart.data.datasets[0].data=d.temp;
+  const d = weatherData[currentDate];
+  if(!d){
+    setStatus("error", "No data found for selected date.", "Pick another date from the date picker.");
+    return;
+  }
+
+  clearStatus();
+
+  // Hero
+  const heroIdx = pickHeroIndex(d);
+  const heroT = d.temp[heroIdx];
+  const heroH = d.hum[heroIdx];
+  const heroHr = d.hour24[heroIdx];
+
+  document.getElementById("heroDay").innerText = d.label.split("•")[0].trim();
+  document.getElementById("heroTemp").innerText = `${avg(d.temp).toFixed(1)} °C (avg)`;
+  document.getElementById("heroHum").innerText  = `${avg(d.hum).toFixed(1)} % (avg)`;
+  document.getElementById("heroCond").innerText = smartText(heroT, heroH, heroHr);
+  document.getElementById("heroIcon").src = smartIcon(heroT, heroH, heroHr);
+
+  // Forecast text (honest)
+  const minT = Math.min(...d.temp).toFixed(1);
+  const maxT = Math.max(...d.temp).toFixed(1);
+  const avgH = avg(d.hum).toFixed(0);
+  document.getElementById("forecastText").innerText =
+    `📌 Summary: Temp ${minT}°–${maxT}° • Avg humidity ${avgH}% • Icons are estimated from temp+humidity only (no real rain sensor).`;
+
+  // Hour strip
+  const hourStrip = document.getElementById("hourStrip");
+  hourStrip.innerHTML = d.hours.map((hStr, i) => {
+    const hr = d.hour24[i];
+    const t = d.temp[i];
+    const h = d.hum[i];
+    const icon = smartIcon(t, h, hr);
+    const txt = smartText(t, h, hr);
+    return `
+      <div class="hour">
+        <div class="t">${hStr}</div>
+        <img src="${icon}" alt="icon" />
+        <div class="temp">🌡️ ${t.toFixed(1)}°</div>
+        <div class="hum">💧 ${h.toFixed(0)}%</div>
+        <div class="note">${txt}</div>
+      </div>
+    `;
+  }).join("");
+
+  // Charts
+  tempChart.data.labels = d.hours;
+  tempChart.data.datasets[0].data = d.temp;
   tempChart.update();
 
-  humChart.data.labels=d.hours.map(h=>h+":00");
-  humChart.data.datasets[0].data=d.hum;
+  humChart.data.labels = d.hours;
+  humChart.data.datasets[0].data = d.hum;
   humChart.update();
 
-  /* Day hero */
-  heroDay.innerText=currentDate;
-  heroTemp.innerText=avg(d.temp).toFixed(1)+" °C";
-  heroHum.innerText=avg(d.hum).toFixed(1)+" %";
-  heroCond.innerText="Estimated conditions";
-  heroIcon.src=smartIcon(avg(d.temp),avg(d.hum),12);
+  // Monthly list
+  const monthlyList = document.getElementById("monthlyList");
+  const keys = Object.keys(weatherData).sort();
+  monthlyList.innerHTML = keys.map(date=>{
+    const x = weatherData[date];
+    const idx = pickHeroIndex(x);
+    const ico = smartIcon(x.temp[idx], x.hum[idx], x.hour24[idx]);
+    return `
+      <div class="row">
+        <div class="left">
+          <img src="${ico}" alt="icon" />
+          <div>📅 ${x.label}</div>
+        </div>
+        <div class="range">
+          🌡️ ${Math.min(...x.temp).toFixed(0)}° / ${Math.max(...x.temp).toFixed(0)}°
+          <br>💧 Avg ${avg(x.hum).toFixed(0)}%
+        </div>
+      </div>
+    `;
+  }).join("");
 
-  /* Monthly */
-  monthlyList.innerHTML=Object.keys(weatherData).map(x=>{
-    const o=weatherData[x];
-    return `<div>${x} — 🌡️ ${avg(o.temp).toFixed(1)}° • 💧 ${avg(o.hum).toFixed(0)}%</div>`;
-  }).join("<hr>");
+  // keep date picker in sync
+  datePickerEl.value = currentDate;
 }
 
-/* ===================== CHARTS ===================== */
-const tempChart=new Chart(tempChartCanvas={
-  getContext:()=>document.getElementById("tempChart").getContext("2d")
-}.getContext(),{
-  type:"line",
-  data:{labels:[],datasets:[{data:[],borderColor:"#38bdf8",fill:true,backgroundColor:"rgba(56,189,248,.3)",tension:.4}]},
-  options:{plugins:{legend:{display:false}}}
-});
-
-const humChart=new Chart(document.getElementById("humChart"),{
-  type:"bar",
-  data:{labels:[],datasets:[{data:[],backgroundColor:"rgba(250,204,21,.6)",borderRadius:10}]},
-  options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:100}}}
-});
-
-/* ===================== UTILS ===================== */
-function avg(a){return a.reduce((x,y)=>x+y,0)/a.length}
-function switchTab(t){
-  document.querySelectorAll(".tabs span").forEach(x=>x.classList.remove("active"));
-  document.querySelector(`.tabs span[onclick*=${t}]`).classList.add("active");
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(t).classList.add("active");
+/* =========================================================
+   Utils
+   ========================================================= */
+function avg(arr){
+  if(!arr || !arr.length) return 0;
+  return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
+function formatLocalTime(d){
+  try{
+    return d.toLocaleString(undefined, { year:"numeric", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+  }catch(_){
+    return d.toString();
+  }
 }
 
-/* INIT */
-loadCSV();
+/* =========================================================
+   Init: load CSV -> build data -> render
+   ========================================================= */
+(async function init(){
+  try{
+    setStatus("", "Loading CSV…", "Trying data/tapo_data.csv then data/data.csv");
+
+    const { text, usedPath } = await fetchTextWithFallback();
+    const rows = parseCSVToRows(text);
+
+    if(!rows.length){
+      setStatus("error", "CSV loaded but no valid rows found.",
+        `Loaded from <b>${usedPath}</b>. Check header names + first 3 columns (Timestamp, Temperature, Humidity).`);
+      return;
+    }
+
+    // Remember last timestamp for UI badge
+    rows.sort((a,b)=>a.d - b.d);
+    lastTimestamp = rows[rows.length-1].d;
+    lastUpdatedEl.textContent = "Last update: " + formatLocalTime(lastTimestamp);
+
+    weatherData = buildWeatherData(rows);
+
+    const dates = Object.keys(weatherData).sort();
+    currentDate = dates[dates.length-1];
+
+    setStatus("ok", "CSV loaded successfully ✅",
+      `Loaded <b>${rows.length}</b> rows from <b>${usedPath}</b>. Showing latest date: <b>${currentDate}</b>.`);
+
+    rebuildDayStrip();
+    updateAll();
+
+  }catch(e){
+    setStatus("error", "Failed to load CSV ❌",
+      `Reason: ${String(e.message || e)}<br>
+       Fix: Ensure CSV exists in repo at <b>data/tapo_data.csv</b> or <b>data/data.csv</b> and is committed to <b>main</b>.`);
+  }
+})();
 </script>
 </body>
 </html>
