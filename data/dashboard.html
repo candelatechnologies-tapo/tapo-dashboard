@@ -1,144 +1,91 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>Smart Temperature & Humidity Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-  :root{
-    --bg:#0b1220;
-    --card:#1e293b;
-    --card2:#111827;
-    --accent:#38bdf8;
-    --accent2:#facc15;
-    --text:#ffffff;
-    --muted:rgba(255,255,255,.65);
-  }
+:root{
+  --bg:#0b1220;
+  --card:#1e293b;
+  --card2:#111827;
+  --accent:#38bdf8;
+  --warn:#facc15;
+  --text:#ffffff;
+  --muted:rgba(255,255,255,.65);
+}
+body{margin:0;font-family:Inter,sans-serif;background:var(--bg);color:var(--text);}
+header{padding:18px 26px;background:linear-gradient(135deg,#0284c7,#0ea5e9);}
+header h1{margin:0;font-size:20px;font-weight:800;}
+.container{max-width:1200px;margin:auto;padding:20px}
 
-  body{margin:0;font-family:Inter,sans-serif;background:var(--bg);color:var(--text);}
-  header{
-    padding:18px 26px;
-    background:linear-gradient(135deg,#0284c7,#0ea5e9);
-  }
-  header h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.2px;}
-  header .sub{margin-top:6px;opacity:.9;font-size:13px}
+/* NAV */
+.nav{display:flex;justify-content:space-between;align-items:center;margin:18px 0}
+.tabs span{margin-right:22px;font-weight:700;cursor:pointer;opacity:.6}
+.tabs .active{opacity:1;border-bottom:3px solid var(--accent);padding-bottom:6px}
 
-  .container{max-width:1200px;margin:auto;padding:20px}
+/* DAY STRIP */
+.days{display:flex;gap:14px;margin-bottom:18px;overflow-x:auto}
+.day{
+  background:var(--card);
+  padding:14px;
+  border-radius:16px;
+  min-width:130px;
+  cursor:pointer;
+}
+.day.active{background:#334155}
+.day .date{font-size:12px;opacity:.8}
+.day .big{font-size:22px;font-weight:800;margin-top:4px}
+.pill{margin-top:6px;font-size:12px;opacity:.85}
 
-  /* NAV */
-  .nav{display:flex;justify-content:space-between;align-items:center;margin:18px 0}
-  .tabs span{margin-right:22px;font-weight:700;cursor:pointer;opacity:.6}
-  .tabs .active{opacity:1;border-bottom:3px solid var(--accent);padding-bottom:6px}
-  .calendar{font-size:22px;position:relative;cursor:pointer}
-  .calendar input{position:absolute;inset:0;opacity:0;cursor:pointer}
+/* SECTIONS */
+.section{display:none}
+.section.active{display:block}
 
-  /* DAY STRIP */
-  .days{display:flex;gap:14px;margin-bottom:18px;overflow-x:auto;padding-bottom:6px}
-  .day{
-    background:var(--card);
-    padding:14px 14px;
-    border-radius:16px;
-    text-align:center;
-    cursor:pointer;
-    min-width:118px;
-    box-shadow:0 10px 25px rgba(0,0,0,.25);
-  }
-  .day.active{background:#334155}
-  .day .date{font-size:12px;opacity:.85;margin-bottom:8px}
-  .day .big{font-size:22px;font-weight:800}
-  .pill{
-    display:inline-block;
-    margin-top:8px;
-    padding:6px 10px;
-    border-radius:999px;
-    background:rgba(255,255,255,.08);
-    font-size:12px;
-    color:var(--muted);
-  }
+/* HERO */
+.hero{
+  background:linear-gradient(180deg,#0284c7,#0369a1);
+  border-radius:26px;
+  padding:26px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:16px;
+}
+.hero h2{margin:0;font-size:34px}
+.hero .meta{margin-top:12px;line-height:1.8}
+.hero img{width:140px}
 
-  /* SECTIONS */
-  .section{display:none}
-  .section.active{display:block}
+/* HOURLY STRIP */
+.hour-strip{
+  display:flex;
+  gap:12px;
+  overflow-x:auto;
+  padding:12px;
+  background:var(--card2);
+  border-radius:18px;
+  margin-bottom:16px;
+}
+.hour{
+  min-width:110px;
+  background:rgba(255,255,255,.06);
+  border-radius:16px;
+  padding:10px;
+  text-align:center;
+}
+.hour img{width:32px}
+.hour .t{font-size:12px;opacity:.8}
+.hour .temp{font-size:18px;font-weight:800}
+.hour .conf{font-size:11px;opacity:.7}
 
-  /* HERO (DAY TAB) */
-  .hero{
-    background:linear-gradient(180deg,#0284c7,#0369a1);
-    border-radius:26px;
-    padding:26px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    box-shadow:0 20px 50px rgba(0,0,0,.35);
-    margin-bottom:16px;
-  }
-  .hero h2{margin:0;font-size:36px;letter-spacing:.3px}
-  .hero .meta{margin-top:12px;line-height:1.9;color:rgba(255,255,255,.92);font-weight:600}
-  .hero img{width:160px}
-
-  .info{
-    background:rgba(255,255,255,.08);
-    border:1px solid rgba(255,255,255,.06);
-    padding:14px 16px;
-    border-radius:16px;
-    margin-bottom:18px;
-    color:rgba(255,255,255,.92);
-  }
-
-  /* HOURLY STRIP (with emojis/icons) */
-  .hour-strip{
-    display:flex;
-    gap:12px;
-    overflow-x:auto;
-    padding:12px;
-    background:var(--card2);
-    border-radius:18px;
-    box-shadow:0 12px 28px rgba(0,0,0,.35);
-    margin-bottom:16px;
-  }
-  .hour{
-    min-width:92px;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.06);
-    border-radius:16px;
-    padding:10px 10px;
-    text-align:center;
-  }
-  .hour .t{font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
-  .hour img{width:30px;height:30px}
-  .hour .temp{font-size:18px;font-weight:900;margin-top:6px}
-  .hour .hum{font-size:12px;color:rgba(255,255,255,.8);font-weight:700;margin-top:4px}
-
-  /* CARDS */
-  .card{
-    background:var(--card);
-    border-radius:18px;
-    padding:18px;
-    box-shadow:0 12px 28px rgba(0,0,0,.35);
-    margin-bottom:16px;
-    border:1px solid rgba(255,255,255,.06);
-  }
-  .card h3{margin:0 0 10px;font-size:14px;letter-spacing:.2px;color:rgba(255,255,255,.9)}
-  .chart-wrap{height:260px;}
-  canvas{width:100% !important;height:100% !important;}
-
-  /* Monthly list */
-  .monthly-list{display:flex;flex-direction:column;gap:10px}
-  .row{
-    display:flex;align-items:center;justify-content:space-between;
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.06);
-    padding:12px 14px;border-radius:14px;
-  }
-  .row .left{display:flex;align-items:center;gap:10px;font-weight:800}
-  .row img{width:28px}
-  .row .range{color:rgba(255,255,255,.85);font-weight:800}
-
-  footer{text-align:center;opacity:.5;padding:18px;font-size:13px}
+/* CARDS */
+.card{background:var(--card);border-radius:18px;padding:18px;margin-bottom:16px}
+.chart-wrap{height:260px}
+canvas{width:100%!important;height:100%!important}
 </style>
 </head>
 
@@ -149,340 +96,188 @@
 
 <div class="container">
 
-  <!-- NAV -->
-  <div class="nav">
-    <div class="tabs">
-      <span class="active" onclick="switchTab('hourly')">Hourly</span>
-      <span onclick="switchTab('day')">Day</span>
-      <span onclick="switchTab('monthly')">Monthly</span>
-    </div>
-    <div class="calendar" title="Pick a date">
-      📅
-      <input type="date" onchange="loadByDate(this.value)" />
-    </div>
+<div class="nav">
+  <div class="tabs">
+    <span class="active" onclick="switchTab('hourly')">Hourly</span>
+    <span onclick="switchTab('day')">Day</span>
+    <span onclick="switchTab('monthly')">Monthly</span>
+  </div>
+</div>
+
+<div class="days" id="days"></div>
+
+<!-- HOURLY -->
+<div id="hourly" class="section active">
+  <div class="hour-strip" id="hourStrip"></div>
+
+  <div class="card">
+    <h3>🌡️ Temperature (°C)</h3>
+    <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
   </div>
 
-  <!-- DAY STRIP -->
-  <div class="days" id="days"></div>
-
-  <!-- HOURLY -->
-  <div id="hourly" class="section active">
-    <div class="hour-strip" id="hourStrip"></div>
-
-    <div class="card">
-      <h3>🌡️ Hourly Temperature (°C)</h3>
-      <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
-    </div>
-
-    <div class="card">
-      <h3>💧 Hourly Humidity (%)</h3>
-      <div class="chart-wrap"><canvas id="humChart"></canvas></div>
-    </div>
+  <div class="card">
+    <h3>💧 Humidity (%)</h3>
+    <div class="chart-wrap"><canvas id="humChart"></canvas></div>
   </div>
+</div>
 
-  <!-- DAY -->
-  <div id="day" class="section">
-    <div class="hero">
-      <div>
-        <h2 id="heroDay">—</h2>
-        <div class="meta">
-          🌡️ <span id="heroTemp">—</span><br />
-          💧 <span id="heroHum">—</span><br />
-        </div>
+<!-- DAY -->
+<div id="day" class="section">
+  <div class="hero">
+    <div>
+      <h2 id="heroDay"></h2>
+      <div class="meta">
+        🌡️ <span id="heroTemp"></span><br>
+        💧 <span id="heroHum"></span><br>
+        🧭 <span id="heroCond"></span>
       </div>
-      <img id="heroIcon" alt="Weather icon" />
     </div>
-
-    <div class="info" id="forecastText">—</div>
+    <img id="heroIcon">
   </div>
+</div>
 
-  <!-- MONTHLY -->
-  <div id="monthly" class="section">
-    <div class="card">
-      <h3>📅 Multi-day Forecast (from available CSV days)</h3>
-      <div class="monthly-list" id="monthlyList"></div>
-    </div>
-  </div>
+<!-- MONTHLY -->
+<div id="monthly" class="section">
+  <div class="card" id="monthlyList"></div>
+</div>
 
 </div>
 
 <script>
-/* =========================
-   CSV-DERIVED DATA (as used before)
-   ========================= */
-const weatherData = {
-  "2025-12-30": {
-    label: "Monday • 30 Dec",
-    icon: "https://img.icons8.com/color/256/rain.png",
-    forecast: "Partly cloudy conditions expected around 8PM.",
-    hours: ["4 PM","5 PM","6 PM","7 PM","8 PM","9 PM","10 PM","11 PM"],
-    temp: [27.0,24.9,24.3,24.4,24.0,23.8,23.7,23.3],
-    hum:  [64.8,70.2,73.2,74.1,75.3,75.8,76.4,77.7],
-    hourIcons: [
-      "https://img.icons8.com/color/96/partly-cloudy-day.png",
-      "https://img.icons8.com/color/96/rain.png",
-      "https://img.icons8.com/color/96/rain.png",
-      "https://img.icons8.com/color/96/rain.png",
-      "https://img.icons8.com/color/96/cloud.png",
-      "https://img.icons8.com/color/96/cloud.png",
-      "https://img.icons8.com/color/96/cloud.png",
-      "https://img.icons8.com/color/96/cloud.png"
-    ]
-  },
-  "2025-12-31": {
-    label: "Tuesday • 31 Dec",
-    icon: "https://img.icons8.com/color/256/sun.png",  // will be overridden by smart icon if needed
-    forecast: "Mostly sunny throughout the day.",
-    hours: [...Array(24).keys()].map(h => `${String(h).padStart(2,"0")}:00`),
-    temp: [23.2,23.1,23.0,22.9,22.8,22.7,22.6,22.5,22.7,23.0,23.4,24.0,25.1,26.0,26.5,26.7,26.8,26.6,26.3,25.8,25.0,24.3,23.8,23.5],
-    hum:  [78.0,79.3,79.2,78.8,79.0,78.6,76.0,71.9,67.1,64.7,64.2,66.0,67.5,69.2,71.0,73.0,75.0,76.8,77.9,78.5,79.0,79.3,79.6,80.0],
-    hourIcons: []
-  }
-};
+/* ================= LOAD CSV ================= */
+let rawRows=[], hourlyData={}, dates=[], currentDate="";
 
-let currentDate = Object.keys(weatherData)[0];
+async function loadCSV(){
+  const res = await fetch("data/tapo_data.csv",{cache:"no-store"});
+  const text = await res.text();
+  const lines = text.trim().split("\n").slice(1);
 
-/* =========================
-   SMART ICONS (NEW)
-   ========================= */
+  rawRows = lines.map(l=>{
+    const [ts,t,h]=l.split(",");
+    const d=new Date(ts.replace(" ","T"));
+    return {
+      date:d.toISOString().slice(0,10),
+      hour:d.getHours(),
+      temp:+t,
+      hum:+h
+    };
+  });
 
-// parse "00:00" or "4 PM" into 0-23 hour
-function parseHourTo24(hStr){
-  const s = String(hStr).trim();
-
-  // Format: "HH:MM"
-  const m = s.match(/^(\d{1,2}):(\d{2})$/);
-  if(m){
-    const hh = parseInt(m[1], 10);
-    if(!Number.isNaN(hh)) return Math.max(0, Math.min(23, hh));
-  }
-
-  // Format: "4 PM" / "10 AM"
-  const m2 = s.match(/^(\d{1,2})\s*(AM|PM)$/i);
-  if(m2){
-    let hh = parseInt(m2[1], 10);
-    const ap = m2[2].toUpperCase();
-    if(ap === "AM"){
-      if(hh === 12) hh = 0;
-    } else { // PM
-      if(hh !== 12) hh += 12;
-    }
-    return Math.max(0, Math.min(23, hh));
-  }
-
-  // fallback
-  return 12;
+  aggregate();
+  buildDays();
+  currentDate = dates[dates.length-1];
+  updateAll();
 }
 
-function smartIcon(tempC, humidity, hourStr){
-  const h = parseHourTo24(hourStr);
-  const isNight = (h >= 18 || h < 6);
-
-  // humidity-based effects
-  const veryHumid = humidity >= 85;
-  const humid = humidity >= 75;
-
-  // simple realistic mapping
-  if(isNight){
-    if(veryHumid) return "https://img.icons8.com/color/96/fog-night.png";
-    if(humid)     return "https://img.icons8.com/color/96/cloud.png";
-    return "https://img.icons8.com/color/96/moon.png";
-  } else {
-    if(tempC >= 28 && humidity < 70) return "https://img.icons8.com/color/96/sun.png";
-    if(humid)                        return "https://img.icons8.com/color/96/cloud.png";
-    return "https://img.icons8.com/color/96/partly-cloudy-day.png";
-  }
+/* ================= AGGREGATE PER MINUTE → HOURLY ================= */
+function aggregate(){
+  hourlyData={};
+  rawRows.forEach(r=>{
+    hourlyData[r.date] ??= {};
+    hourlyData[r.date][r.hour] ??= {t:[],h:[]};
+    hourlyData[r.date][r.hour].t.push(r.temp);
+    hourlyData[r.date][r.hour].h.push(r.hum);
+  });
+  dates = Object.keys(hourlyData).sort();
 }
 
-function pickHeroIconForDay(d){
-  // Prefer noon if exists
-  const idxNoon = d.hours.findIndex(x => String(x).includes("12:00") || String(x).toUpperCase() === "12 PM");
-  const idx = idxNoon !== -1 ? idxNoon : Math.floor(d.hours.length/2);
-
-  // If user provided hourIcons and it's present, use it, else smart
-  const userIcon = (d.hourIcons && d.hourIcons[idx]) ? d.hourIcons[idx] : null;
-  if(userIcon) return userIcon;
-  return smartIcon(d.temp[idx], d.hum[idx], d.hours[idx]);
+/* ================= ESTIMATED CONDITIONS ================= */
+function estimate(t,h,hr){
+  const night=(hr>=18||hr<6);
+  if(night && h>=85) return ["Humid night","https://img.icons8.com/color/96/fog-night.png","Medium"];
+  if(h>=80) return ["Very humid","https://img.icons8.com/color/96/cloud.png","Medium"];
+  if(h>=65) return ["Possible cloudiness","https://img.icons8.com/color/96/partly-cloudy-day.png","Low"];
+  if(!night && t>=28 && h<65) return ["Clear & warm","https://img.icons8.com/color/96/sun.png","Medium"];
+  return ["Normal","https://img.icons8.com/color/96/moon.png","Low"];
 }
 
-/* =========================
-   Build Day Strip (with emojis + date + temp)
-   ========================= */
-const daysDiv = document.getElementById("days");
-function rebuildDayStrip(){
-  daysDiv.innerHTML = "";
-  Object.keys(weatherData).forEach(date => {
-    const d = weatherData[date];
-    const card = document.createElement("div");
-    card.className = "day" + (date === currentDate ? " active" : "");
-    card.dataset.date = date;
+/* ================= CHARTS ================= */
+const tempChart=new Chart(document.getElementById("tempChart"),{
+  type:"line",
+  data:{labels:[],datasets:[{data:[],borderColor:"#38bdf8",backgroundColor:"rgba(56,189,248,.3)",fill:true,tension:.4}]},
+  options:{plugins:{legend:{display:false}}}
+});
+const humChart=new Chart(document.getElementById("humChart"),{
+  type:"bar",
+  data:{labels:[],datasets:[{data:[],backgroundColor:"rgba(250,204,21,.6)",borderRadius:10}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:100}}}
+});
 
-    const maxT = Math.max(...d.temp);
-    const avgH = avg(d.hum);
-
-    card.innerHTML = `
-      <div class="date">📅 ${d.label}</div>
-      <div class="big">🌡️ ${maxT.toFixed(0)}°</div>
-      <div class="pill">💧 ${avgH.toFixed(0)}%</div>
-    `;
-    card.onclick = () => { currentDate = date; updateAll(); };
-    daysDiv.appendChild(card);
+/* ================= UI ================= */
+function buildDays(){
+  const days=document.getElementById("days");
+  days.innerHTML="";
+  dates.forEach(d=>{
+    const hrs=Object.values(hourlyData[d]);
+    const avgT=avg(hrs.flatMap(x=>x.t));
+    const avgH=avg(hrs.flatMap(x=>x.h));
+    const el=document.createElement("div");
+    el.className="day"+(d===currentDate?" active":"");
+    el.innerHTML=`
+      <div class="date">${d}</div>
+      <div class="big">${avgT.toFixed(0)}°</div>
+      <div class="pill">💧 ${avgH.toFixed(0)}%</div>`;
+    el.onclick=()=>{currentDate=d;updateAll();}
+    days.appendChild(el);
   });
 }
 
-/* =========================
-   Charts (Temperature + Humidity beautiful)
-   ========================= */
-const tempCtx = document.getElementById("tempChart").getContext("2d");
-const humCtx  = document.getElementById("humChart").getContext("2d");
-
-function makeGradient(ctx, height, c1, c2){
-  const g = ctx.createLinearGradient(0,0,0,height);
-  g.addColorStop(0,c1);
-  g.addColorStop(1,c2);
-  return g;
-}
-
-const tempGradient = makeGradient(tempCtx, 260, "rgba(56,189,248,.55)", "rgba(56,189,248,0)");
-const humGradient  = makeGradient(humCtx, 260, "rgba(250,204,21,.55)", "rgba(250,204,21,0)");
-
-const tempChart = new Chart(tempCtx, {
-  type: "line",
-  data: { labels: [], datasets: [{
-    label: "Temperature",
-    data: [],
-    borderColor: "#38bdf8",
-    backgroundColor: tempGradient,
-    fill: true,
-    tension: 0.4,
-    pointRadius: 3,
-    pointHoverRadius: 6
-  }]},
-  options: {
-    responsive:true,
-    maintainAspectRatio:false,
-    plugins:{ legend:{display:false}, tooltip:{enabled:true} },
-    scales:{
-      x:{ticks:{color:"rgba(255,255,255,.75)"},grid:{color:"rgba(255,255,255,.06)"}},
-      y:{ticks:{color:"rgba(255,255,255,.75)"},grid:{color:"rgba(255,255,255,.06)"}}
-    }
-  }
-});
-
-const humChart = new Chart(humCtx, {
-  type: "bar",
-  data: { labels: [], datasets: [{
-    label: "Humidity",
-    data: [],
-    backgroundColor: humGradient,
-    borderColor: "#facc15",
-    borderWidth: 1,
-    borderRadius: 12,
-    barThickness: 18
-  }]},
-  options: {
-    responsive:true,
-    maintainAspectRatio:false,
-    plugins:{ legend:{display:false}, tooltip:{enabled:true} },
-    scales:{
-      x:{ticks:{color:"rgba(255,255,255,.75)"},grid:{color:"rgba(255,255,255,.06)"}},
-      y:{
-        min:0, max:100,
-        ticks:{color:"rgba(255,255,255,.75)"},
-        grid:{color:"rgba(255,255,255,.06)"}
-      }
-    }
-  }
-});
-
-/* =========================
-   Tabs + Calendar
-   ========================= */
-function switchTab(tab){
-  document.querySelectorAll(".tabs span").forEach(t=>t.classList.remove("active"));
-  document.querySelector(`.tabs span[onclick*="${tab}"]`).classList.add("active");
-
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(tab).classList.add("active");
-}
-
-function loadByDate(dateStr){
-  const normalized = new Date(dateStr).toISOString().split("T")[0];
-  if(weatherData[normalized]){
-    currentDate = normalized;
-    switchTab("hourly");
-    updateAll();
-  }else{
-    alert("No data for selected date in CSV set.");
-  }
-}
-
-/* =========================
-   Update UI (icons + emojis + charts)
-   ========================= */
 function updateAll(){
-  document.querySelectorAll(".day").forEach(d=>{
-    d.classList.toggle("active", d.dataset.date === currentDate);
+  buildDays();
+  const day=hourlyData[currentDate];
+  const hours=Object.keys(day).sort((a,b)=>a-b);
+
+  const tArr=[],hArr=[];
+  const strip=document.getElementById("hourStrip");
+  strip.innerHTML="";
+
+  hours.forEach(h=>{
+    const t=avg(day[h].t), hum=avg(day[h].h);
+    const [txt,icon,conf]=estimate(t,hum,+h);
+    strip.innerHTML+=`
+      <div class="hour">
+        <div class="t">${h}:00</div>
+        <img src="${icon}">
+        <div class="temp">${t.toFixed(1)}°</div>
+        <div class="conf">${txt}<br>${conf}</div>
+      </div>`;
+    tArr.push(t); hArr.push(hum);
   });
 
-  const d = weatherData[currentDate];
-
-  // Day Hero (use smart hero icon)
-  document.getElementById("heroDay").innerText = d.label.split("•")[0].trim();
-  document.getElementById("heroIcon").src = pickHeroIconForDay(d);
-  document.getElementById("heroTemp").innerText = `${avg(d.temp).toFixed(1)} °C`;
-  document.getElementById("heroHum").innerText  = `${avg(d.hum).toFixed(1)} %`;
-  document.getElementById("forecastText").innerText = `📝 ${d.forecast}`;
-
-  // Hourly icon strip
-  const hourStrip = document.getElementById("hourStrip");
-  hourStrip.innerHTML = d.hours.map((h, i) => {
-    // If user defined hourIcons, use it; else auto-generate smart icon
-    const userIcon = (d.hourIcons && d.hourIcons[i]) ? d.hourIcons[i] : null;
-    const icon = userIcon || smartIcon(Number(d.temp[i]), Number(d.hum[i]), h);
-
-    return `
-      <div class="hour">
-        <div class="t">${h}</div>
-        <img src="${icon}" alt="icon" />
-        <div class="temp">🌡️ ${Number(d.temp[i]).toFixed(0)}°</div>
-        <div class="hum">💧 ${Number(d.hum[i]).toFixed(0)}%</div>
-      </div>
-    `;
-  }).join("");
-
-  // Temperature chart
-  tempChart.data.labels = d.hours;
-  tempChart.data.datasets[0].data = d.temp;
+  tempChart.data.labels=hours.map(h=>h+":00");
+  tempChart.data.datasets[0].data=tArr;
   tempChart.update();
 
-  // Humidity chart
-  humChart.data.labels = d.hours;
-  humChart.data.datasets[0].data = d.hum;
+  humChart.data.labels=hours.map(h=>h+":00");
+  humChart.data.datasets[0].data=hArr;
   humChart.update();
 
-  // Monthly list
-  const monthlyList = document.getElementById("monthlyList");
-  monthlyList.innerHTML = Object.keys(weatherData).map(date=>{
-    const x = weatherData[date];
-    const heroIco = pickHeroIconForDay(x);
-    return `
-      <div class="row">
-        <div class="left">
-          <img src="${heroIco}" alt="icon" />
-          <div>📅 ${x.label}</div>
-        </div>
-        <div class="range">🌡️ ${Math.min(...x.temp).toFixed(0)}° / ${Math.max(...x.temp).toFixed(0)}° • 💧 ${avg(x.hum).toFixed(0)}%</div>
-      </div>
-    `;
-  }).join("");
+  const mid=Math.floor(hours.length/2);
+  const [txt,icon,conf]=estimate(tArr[mid],hArr[mid],+hours[mid]);
+  heroDay.innerText=currentDate;
+  heroTemp.innerText=avg(tArr).toFixed(1)+" °C";
+  heroHum.innerText=avg(hArr).toFixed(1)+" %";
+  heroCond.innerText=txt+" ("+conf+")";
+  heroIcon.src=icon;
+
+  document.getElementById("monthlyList").innerHTML=
+    dates.map(d=>{
+      const h=Object.values(hourlyData[d]);
+      return `<div>${d} — 🌡️ ${avg(h.flatMap(x=>x.t)).toFixed(1)}° • 💧 ${avg(h.flatMap(x=>x.h)).toFixed(0)}%</div>`;
+    }).join("<hr>");
 }
 
-function avg(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+/* ================= UTILS ================= */
+function avg(a){return a.reduce((x,y)=>x+y,0)/a.length}
+function switchTab(t){
+  document.querySelectorAll(".tabs span").forEach(x=>x.classList.remove("active"));
+  document.querySelector(`.tabs span[onclick*=${t}]`).classList.add("active");
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(t).classList.add("active");
+}
 
 /* INIT */
-rebuildDayStrip();
-updateAll();
+loadCSV();
 </script>
 </body>
 </html>
