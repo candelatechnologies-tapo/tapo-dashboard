@@ -1,54 +1,96 @@
-#!/usr/bin/env python3
-
 import os
 import csv
-from datetime import datetime
 import pytz
+import pandas as pd
+from datetime import datetime, timedelta
 from tapo import ApiClient
 
-# ---------------- CONFIG ----------------
-TAPO_EMAIL = os.getenv("TAPO_EMAIL")
-TAPO_PASSWORD = os.getenv("TAPO_PASSWORD")
-TAPO_DEVICE_IP = os.getenv("TAPO_DEVICE_IP")
-TIMEZONE = os.getenv("TIMEZONE", "Asia/Kolkata")
+# =========================
+# READ FROM GITHUB SECRETS
+# =========================
+TAPO_EMAIL = os.environ["TAPO_EMAIL"]
+TAPO_PASSWORD = os.environ["TAPO_PASSWORD"]
+DEVICE_IP = os.environ.get("TAPO_DEVICE_IP", "")
+TIMEZONE = os.environ.get("TIMEZONE", "UTC")
 
-CSV_FILE = "data/tapo_data.csv"
-
-# ---------------- VALIDATION ----------------
-if not all([TAPO_EMAIL, TAPO_PASSWORD, TAPO_DEVICE_IP]):
-    raise RuntimeError("Missing TAPO_EMAIL / TAPO_PASSWORD / TAPO_DEVICE_IP")
+CSV_PATH = "data/tapo_data.csv"
 
 tz = pytz.timezone(TIMEZONE)
+now = datetime.now(tz)
 
-# ---------------- FETCH DATA ----------------
-async def fetch_data():
-    client = ApiClient(TAPO_EMAIL, TAPO_PASSWORD)
-    device = await client.p110(TAPO_DEVICE_IP)  # works for T310 sensors
+print("Connecting to Tapo Cloud...")
 
-    info = await device.get_device_info()
+client = ApiClient(TAPO_EMAIL, TAPO_PASSWORD)
+device = client.get_device(DEVICE_IP)
 
-    temperature = info["current_temp"] / 10.0
-    humidity = info["current_humidity"]
+# =========================
+# FETCH LAST 24 HOURS
+# =========================
+start_time = now - timedelta(hours=24)
 
-    timestamp = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
-    return timestamp, temperature, humidity
+records = device.get_temperature_humidity_records(
+    start_date=start_time,
+    end_date=now
+)
 
-# ---------------- WRITE CSV ----------------
-def write_csv(row):
-    file_exists = os.path.isfile(CSV_FILE)
+if not records:
+    print("No data received.")
+    exit(0)
 
-    os.makedirs("data", exist_ok=True)
+df = pd.DataFrame(records)
 
-    with open(CSV_FILE, "a", newline="") as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(["timestamp", "temperature", "humidity"])
-        writer.writerow(row)
+df["time"] = pd.to_datetime(df["time"], utc=True).dt.tz_convert(tz)
+df["temperature"] = df["temperature"].astype(float)
+df["humidity"] = df["humidity"].astype(float)
 
-# ---------------- MAIN ----------------
-import asyncio
+# =========================
+# HOURLY AVERAGE
+# =========================
+df["hour"] = df["time"].dt.floor("H")
 
-timestamp, temp, hum = asyncio.run(fetch_data())
-write_csv([timestamp, temp, hum])
+hourly = (
+    df.groupby("hour")
+    .agg({"temperature": "mean", "humidity": "mean"})
+    .reset_index()
+)
 
-print(f"✔ {timestamp} | {temp} °C | {hum} %")
+# =========================
+# LOAD EXISTING CSV
+# =========================
+existing_hours = set()
+
+if os.path.exists(CSV_PATH):
+    old = pd.read_csv(CSV_PATH)
+    old["timestamp"] = pd.to_datetime(old["timestamp"])
+    existing_hours = set(old["timestamp"].dt.strftime("%Y-%m-%d %H:%M"))
+
+# =========================
+# APPEND NEW HOURS
+# =========================
+new_rows = []
+
+for _, r in hourly.iterrows():
+    ts = r["hour"].strftime("%Y-%m-%d %H:%M")
+    if ts in existing_hours:
+        continue
+
+    new_rows.append([
+        ts,
+        round(r["temperature"], 2),
+        round(r["humidity"], 2)
+    ])
+
+if not new_rows:
+    print("No new hourly data to append.")
+    exit(0)
+
+os.makedirs("data", exist_ok=True)
+file_exists = os.path.exists(CSV_PATH)
+
+with open(CSV_PATH, "a", newline="") as f:
+    writer = csv.writer(f)
+    if not file_exists:
+        writer.writerow(["timestamp", "temperature", "humidity"])
+    writer.writerows(new_rows)
+
+print(f"Added {len(new_rows)} new hourly rows.")
