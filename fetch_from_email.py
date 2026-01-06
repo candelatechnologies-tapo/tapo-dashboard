@@ -1,62 +1,86 @@
-import os
-import time
-import email
+#!/usr/bin/env python3
+
 import imaplib
+import email
+import os
+import subprocess
+import sys
 from datetime import datetime
-from git import Repo
 
-# ===== CONFIG =====
+# ================= CONFIG =================
+
 IMAP_SERVER = "imap.gmail.com"
+IMAP_PORT = 993
+
+GMAIL_USER = os.getenv("GMAIL_USER")
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
+
 ATTACHMENT_NAME = "data.csv"
-REPO_PATH = os.path.expanduser("~/tapo-dashboard")
-CSV_DEST = os.path.join(REPO_PATH, "data", "tapo_data.csv")
+SAVE_PATH = "data/tapo_data.csv"
 
-GMAIL_ADDRESS = os.environ.get("GMAIL_ADDRESS")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
+# =========================================
 
-if not GMAIL_ADDRESS or not GMAIL_APP_PASSWORD:
-    raise RuntimeError("Missing Gmail environment variables")
+if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+    print("❌ ERROR: Missing GMAIL_USER or GMAIL_APP_PASSWORD")
+    sys.exit(1)
 
-# ===== CONNECT TO GMAIL =====
-mail = imaplib.IMAP4_SSL(IMAP_SERVER)
-mail.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
+print("📧 Connecting to Gmail...")
+
+mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
+mail.login(GMAIL_USER, GMAIL_APP_PASSWORD)
 mail.select("inbox")
 
-# Search last unread email with attachment
-status, messages = mail.search(None, '(UNSEEN)')
-email_ids = messages[0].split()
+print("📥 Fetching recent emails...")
+
+status, messages = mail.search(None, "ALL")
+email_ids = messages[0].split()[-10:]
 
 if not email_ids:
-    print("No new emails found")
-    exit(0)
+    print("❌ No emails found")
+    mail.logout()
+    sys.exit(0)
 
-latest_id = email_ids[-1]
-status, msg_data = mail.fetch(latest_id, "(RFC822)")
+downloaded = False
 
-msg = email.message_from_bytes(msg_data[0][1])
+for eid in reversed(email_ids):
+    status, msg_data = mail.fetch(eid, "(RFC822)")
+    msg = email.message_from_bytes(msg_data[0][1])
 
-found = False
+    subject = msg.get("Subject", "")
+    date = msg.get("Date", "")
+    print(f"🔍 Checking email: {subject} | {date}")
 
-for part in msg.walk():
-    if part.get_content_disposition() == "attachment":
-        filename = part.get_filename()
-        if filename == ATTACHMENT_NAME:
-            with open(CSV_DEST, "wb") as f:
-                f.write(part.get_payload(decode=True))
-            found = True
-            print("CSV downloaded:", CSV_DEST)
-            break
+    for part in msg.walk():
+        if part.get_content_disposition() == "attachment":
+            filename = part.get_filename()
+            print(f"📎 Found attachment: {filename}")
 
-if not found:
-    print("No data.csv attachment found")
-    exit(0)
+            if filename == ATTACHMENT_NAME:
+                os.makedirs(os.path.dirname(SAVE_PATH), exist_ok=True)
+                with open(SAVE_PATH, "wb") as f:
+                    f.write(part.get_payload(decode=True))
 
-# ===== COMMIT TO GITHUB =====
-repo = Repo(REPO_PATH)
-repo.git.add(CSV_DEST)
+                print(f"✅ Downloaded attachment → {SAVE_PATH}")
+                downloaded = True
+                break
 
-commit_msg = f"Update sensor data {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-repo.index.commit(commit_msg)
-repo.remote(name="origin").push()
+    if downloaded:
+        break
 
-print("Data committed and pushed to GitHub")
+mail.logout()
+
+if not downloaded:
+    print("❌ Attachment data.csv not found in last 10 emails")
+    sys.exit(0)
+
+# ================= GIT PUSH =================
+
+print("📤 Pushing CSV to GitHub...")
+
+subprocess.run(["git", "add", SAVE_PATH], check=True)
+
+commit_msg = f"Update sensor data from email ({datetime.now().isoformat(timespec='seconds')})"
+subprocess.run(["git", "commit", "-m", commit_msg], check=False)
+subprocess.run(["git", "push"], check=True)
+
+print("🚀 CSV pushed to GitHub successfully")
